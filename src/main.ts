@@ -4,7 +4,7 @@ import { Renderer } from "./renderer";
 const init = async () => {
     const canvas: HTMLCanvasElement = <HTMLCanvasElement>document.getElementById("gfx-main");
 
-    const sphereCount = 16;
+    const sphereCount = 160;
     
     const sphereCountLabel: HTMLElement = <HTMLElement>document.getElementById("sphere-count");
     sphereCountLabel.innerText = sphereCount.toString();

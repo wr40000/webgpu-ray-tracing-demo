@@ -19,9 +19,11 @@ export class Renderer {
     color_buffer_view!: GPUTextureView
     sampler!: GPUSampler
     sceneParameters!: GPUBuffer
-    sphereBuffer!: GPUBuffer
     nodeBuffer!: GPUBuffer;
-    sphereIndexBuffer!: GPUBuffer;
+    // sphereBuffer!: GPUBuffer
+    // sphereIndexBuffer!: GPUBuffer;
+    triangleBuffer!: GPUBuffer;
+    triangleIndexBuffer!: GPUBuffer;
     sky_texture!: CubeMapMaterial;
 
     // Pipeline objects
@@ -180,12 +182,37 @@ export class Renderer {
             parameterBufferDescriptor
         );
 
-        const sphereBufferDescriptor: GPUBufferDescriptor = {
-            size: 8 * this.scene.spheres.length * 4,
+        // 球
+        // const sphereBufferDescriptor: GPUBufferDescriptor = {
+        //     size: 8 * this.scene.spheres.length * 4,
+        //     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+        // };
+        // this.sphereBuffer = this.device.createBuffer(
+        //     sphereBufferDescriptor
+        // );
+
+        // const sphereIndexBufferDescriptor: GPUBufferDescriptor = {
+        //     size: 4 * this.scene.sphereCount,
+        //     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+        // };
+        // this.sphereIndexBuffer = this.device.createBuffer(
+        //     sphereIndexBufferDescriptor
+        // );
+
+        // 三角
+        const triangleBufferDescriptor: GPUBufferDescriptor = {
+            size: 64 * this.scene.triangleCount,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         };
-        this.sphereBuffer = this.device.createBuffer(
-            sphereBufferDescriptor
+        this.triangleBuffer = this.device.createBuffer(
+            triangleBufferDescriptor
+        );
+        const triangleIndexBufferDescriptor: GPUBufferDescriptor = {
+            size: 4 * this.scene.triangleCount,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+        };
+        this.triangleIndexBuffer = this.device.createBuffer(
+            triangleIndexBufferDescriptor
         );
 
         const nodeBufferDescriptor: GPUBufferDescriptor = {
@@ -195,14 +222,6 @@ export class Renderer {
         };
         this.nodeBuffer = this.device.createBuffer(
             nodeBufferDescriptor
-        );
-
-        const sphereIndexBufferDescriptor: GPUBufferDescriptor = {
-            size: 4 * this.scene.sphereCount,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-        };
-        this.sphereIndexBuffer = this.device.createBuffer(
-            sphereIndexBufferDescriptor
         );
 
         const urls = [
@@ -240,7 +259,7 @@ export class Renderer {
                 {
                     binding: 2,
                     resource: {
-                        buffer: this.sphereBuffer,
+                        buffer: this.triangleBuffer,
                     }
                 },
                 {
@@ -252,7 +271,7 @@ export class Renderer {
                 {
                     binding: 4,
                     resource: {
-                        buffer: this.sphereIndexBuffer,
+                        buffer: this.triangleIndexBuffer,
                     }
                 },
                 {
@@ -341,7 +360,7 @@ export class Renderer {
             // cameraRight: this.scene.camera.rightDirection,
             cameraRight: rightVec,
             cameraUp: this.scene.camera.upDirection,
-            sphereCount: this.scene.spheres.length,
+            triangleCount: this.scene.triangleCount,
         }
         const maxBounces: number = 4;
         this.device.queue.writeBuffer(
@@ -363,25 +382,26 @@ export class Renderer {
                     sceneData.cameraUp[0],
                     sceneData.cameraUp[1],
                     sceneData.cameraUp[2],
-                    sceneData.sphereCount
+                    sceneData.triangleCount
                 ]
             ), 0, 16
         )
 
-        const sphereData: Float32Array = new Float32Array(8 * this.scene.spheres.length);
-
-        for (let i = 0; i < this.scene.spheres.length; i++) {
-            sphereData[8 * i] = this.scene.spheres[i].center[0];
-            sphereData[8 * i + 1] = this.scene.spheres[i].center[1];
-            sphereData[8 * i + 2] = this.scene.spheres[i].center[2];
-            sphereData[8 * i + 3] = 0.0;
-            sphereData[8 * i + 4] = this.scene.spheres[i].color[0];
-            sphereData[8 * i + 5] = this.scene.spheres[i].color[1];
-            sphereData[8 * i + 6] = this.scene.spheres[i].color[2];
-            sphereData[8 * i + 7] = this.scene.spheres[i].radius;
+        const triangleData: Float32Array = new Float32Array(16 * this.scene.triangleCount);
+        for (let i = 0; i < this.scene.triangleCount; i++) {
+            for (var corner = 0; corner < 3; corner++) {
+                for (var dimension = 0; dimension < 3; dimension++) {
+                    triangleData[16*i + 4 * corner + dimension] = 
+                        this.scene.triangles[i].corners[corner][dimension];
+                }
+                triangleData[16*i + 4 * corner + 3] = 0.0;
+            }
+            for (var channel = 0; channel < 3; channel++) {
+                triangleData[16*i + 12 + channel] = this.scene.triangles[i].color[channel];
+            }
+            triangleData[16*i + 15] = 0.0;
         }
-
-        this.device.queue.writeBuffer(this.sphereBuffer, 0, sphereData, 0, 8 * this.scene.spheres.length);
+        this.device.queue.writeBuffer(this.triangleBuffer, 0, triangleData, 0, 16 * this.scene.triangleCount);
 
         const nodeData: Float32Array = new Float32Array(8 * this.scene.nodesUsed);
         for (let i = 0; i < this.scene.nodesUsed; i++) {
@@ -392,15 +412,15 @@ export class Renderer {
             nodeData[8 * i + 4] = this.scene.nodes[i].maxCorner[0];
             nodeData[8 * i + 5] = this.scene.nodes[i].maxCorner[1];
             nodeData[8 * i + 6] = this.scene.nodes[i].maxCorner[2];
-            nodeData[8 * i + 7] = this.scene.nodes[i].sphereCount;
+            nodeData[8 * i + 7] = this.scene.nodes[i].primitiveCount;
         }
         this.device.queue.writeBuffer(this.nodeBuffer, 0, nodeData, 0, 8 * this.scene.nodesUsed);
 
-        const sphereIndexData: Float32Array = new Float32Array(this.scene.sphereCount);
-        for (let i = 0; i < this.scene.sphereCount; i++) {
-            sphereIndexData[i] = this.scene.sphereIndices[i];
+        const triangleIndexData: Float32Array = new Float32Array(this.scene.triangleCount);
+        for (let i = 0; i < this.scene.triangleCount; i++) {
+            triangleIndexData[i] = this.scene.triangleIndices[i];
         }
-        this.device.queue.writeBuffer(this.sphereIndexBuffer, 0, sphereIndexData, 0, this.scene.sphereCount);
+        this.device.queue.writeBuffer(this.triangleIndexBuffer, 0, triangleIndexData, 0, this.scene.triangleCount);
     }
 
     render = () => {
@@ -418,7 +438,7 @@ export class Renderer {
         //         sphereCount: this.scene.spheres.length,
         //     });            
         // }
-        
+
         this.prepareScene();
 
         const commandEncoder: GPUCommandEncoder = this.device.createCommandEncoder();
