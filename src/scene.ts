@@ -23,9 +23,9 @@ export class Scene {
     }
 
     async make_scene() {
-        this.statue = new ObjMesh();
+        this.statue = new ObjMesh([0, -10, 0], [180,0,0]);
 
-        await this.statue.initialize([1.0, 1.0, 1.0], "public/models/statue.obj");
+        await this.statue.initialize([0.0, 0.0, 0.0], "public/models/tree.obj");
 
         //TODO: get the triangle data from the loaded model and put
         //it into the triangle list
@@ -39,6 +39,10 @@ export class Scene {
         this.triangleCount = this.triangles.length;
 
         this.buildBVH();
+    }
+
+    update(frametime: number) {
+        this.statue.update(frametime / 16.667);
     }
 
     // 球的BVH

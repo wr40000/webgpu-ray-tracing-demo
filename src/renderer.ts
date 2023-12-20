@@ -36,6 +36,8 @@ export class Renderer {
     screen_bind_group!: GPUBindGroup
 
     scene!: Scene
+    frametime!: number
+    loaded!: boolean
 
     constructor(canvas: HTMLCanvasElement, scene: Scene) {
         this.canvas = canvas;
@@ -54,6 +56,10 @@ export class Renderer {
         await this.makeBindGroups();
 
         await this.makePipelines();
+
+        this.frametime = 16;
+        this.loaded = false;
+
         this.render()
     }
 
@@ -181,7 +187,7 @@ export class Renderer {
 
         const parameterBufferDescriptor: GPUBufferDescriptor = {
             label: 'sceneParameters',
-            size: 64,
+            size: 128,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         };
         this.sceneParameters = this.device.createBuffer(
@@ -214,7 +220,7 @@ export class Renderer {
 
         // 三角
         const triangleBufferDescriptor: GPUBufferDescriptor = {
-            size: 64 * this.scene.triangleCount,
+            size: 28 * 4 * this.scene.triangleCount,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         };
         this.triangleBuffer = this.device.createBuffer(
@@ -380,6 +386,7 @@ export class Renderer {
             cameraRight: rightVec,
             cameraUp: this.scene.camera.upDirection,
             triangleCount: this.scene.triangleCount,
+            inverseModel: this.scene.statue.inverseModel,
         }
         const maxBounces: number = 4;
         this.device.queue.writeBuffer(
@@ -401,24 +408,34 @@ export class Renderer {
                     sceneData.cameraUp[0],
                     sceneData.cameraUp[1],
                     sceneData.cameraUp[2],
-                    sceneData.triangleCount
+                    sceneData.triangleCount,
+                    ...sceneData.inverseModel
                 ]
-            ), 0, 16
+            ), 0, 32
         )
 
-        const triangleData: Float32Array = new Float32Array(16 * this.scene.triangleCount);
+
+        if (this.loaded) {
+            return;
+        }
+        this.loaded = true;
+        const triangleData: Float32Array = new Float32Array(28 * this.scene.triangleCount);
         for (let i = 0; i < this.scene.triangleCount; i++) {
             for (var corner = 0; corner < 3; corner++) {
-                for (var dimension = 0; dimension < 3; dimension++) {
-                    triangleData[16*i + 4 * corner + dimension] = 
-                        this.scene.triangles[i].corners[corner][dimension];
-                }
-                triangleData[16*i + 4 * corner + 3] = 0.0;
+                triangleData[28*i + 8 * corner]     = this.scene.triangles[i].corners[corner][0];
+                triangleData[28*i + 8 * corner + 1] = this.scene.triangles[i].corners[corner][1];
+                triangleData[28*i + 8 * corner + 2] = this.scene.triangles[i].corners[corner][2];
+                triangleData[28*i + 8 * corner + 3] = 0.0;
+
+                triangleData[28*i + 8 * corner + 4] = this.scene.triangles[i].normals[corner][0];
+                triangleData[28*i + 8 * corner + 5] = this.scene.triangles[i].normals[corner][1];
+                triangleData[28*i + 8 * corner + 6] = this.scene.triangles[i].normals[corner][2];
+                triangleData[28*i + 8 * corner + 7] = 0.0;
             }
             for (var channel = 0; channel < 3; channel++) {
-                triangleData[16*i + 12 + channel] = this.scene.triangles[i].color[channel];
+                triangleData[28*i + 24 + channel] = this.scene.triangles[i].color[channel];
             }
-            triangleData[16*i + 15] = 0.0;
+            triangleData[28*i + 27] = 0.0;
         }
         this.device.queue.writeBuffer(this.triangleBuffer, 0, triangleData, 0, 16 * this.scene.triangleCount);
 
@@ -445,20 +462,10 @@ export class Renderer {
     }
 
     render = () => {
-
+        
         let start: number = performance.now();
-        // this.count++;
-        // if(this.count % (120 * 2) == 1){
-        //     let rightVec = vec3.fromValues(0, 0, 3);
-        //     vec3.cross(rightVec, this.scene.camera.forwardDirection, this.scene.camera.upDirection);
-        //     console.log({
-        //         cameraPos: this.scene.camera.position,
-        //         cameraForwards: this.scene.camera.forwardDirection,
-        //         cameraRight: rightVec,
-        //         cameraUp: this.scene.camera.upDirection,
-        //         sphereCount: this.scene.spheres.length,
-        //     });            
-        // }
+
+        this.scene.update(this.frametime);
 
         this.prepareScene();
 
@@ -491,9 +498,10 @@ export class Renderer {
         this.device.queue.onSubmittedWorkDone().then(
             () => {
                 let end: number = performance.now();
-                let performanceLabel: HTMLElement = <HTMLElement>document.getElementById("render-time");
+                this.frametime = end - start;
+                let performanceLabel: HTMLElement =  <HTMLElement> document.getElementById("render-time");
                 if (performanceLabel) {
-                    performanceLabel.innerText = (end - start).toString();
+                    performanceLabel.innerText = this.frametime.toString();
                 }
             }
         );

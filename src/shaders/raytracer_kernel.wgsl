@@ -7,9 +7,15 @@ struct Sphere{
 struct Triangle {
     corner_a: vec3<f32>,
     //float
+    normal_a: vec3<f32>,
+    //float
     corner_b: vec3<f32>,
     //float
+    normal_b: vec3<f32>,
+    //float
     corner_c: vec3<f32>,
+    //float
+    normal_c: vec3<f32>,
     //float
     color: vec3<f32>,
     //float
@@ -46,6 +52,7 @@ struct SceneData {
     maxBounces: f32,
     cameraUp: vec3<f32>,
     primitiveCount: f32,
+    inverseModel: mat4x4<f32>,
 }
 
 struct RenderState {
@@ -95,9 +102,14 @@ fn rayColor(ray: Ray, id:u32) -> vec3<f32> {
     var result: RenderState;
     var lightDir: vec3<f32> = vec3<f32>(-1, -1, -1);
 
-    var temp_ray: Ray;
-    temp_ray.origin = ray.origin;
-    temp_ray.direction = ray.direction;
+    var world_ray: Ray;
+    var object_ray: Ray;
+    world_ray.origin = ray.origin;
+    world_ray.direction = ray.direction;
+    
+    // 第四分量为0: 向量，为1：标量
+    object_ray.origin = (scene.inverseModel * vec4<f32>(ray.origin, 1.0)).xyz;
+    object_ray.direction = (scene.inverseModel * vec4<f32>(ray.direction, 0.0)).xyz;
 
     let bounces: u32 = u32(scene.maxBounces);
     // for (var sample = 0u; sample < SAMPLES; sample++) {
@@ -107,20 +119,22 @@ fn rayColor(ray: Ray, id:u32) -> vec3<f32> {
             //     vec2(f32(id)/exp2(14), random_seed),
             //     vec2(12.9898, 78.233)
             //     )) * 43758.5453)/100;
-            result = trace(temp_ray, lightDir, multiplier);
-            multiplier *= 0.5;
+            result = trace(object_ray, lightDir, multiplier);
             //unpack color
-            color += result.color;   //my
+            color += result.color * multiplier;   //my
+            multiplier *= 0.5;
 
             //early exit
             if (!result.hit) {
-                break;
+                //sky color
+                color = textureSampleLevel(skyTexture, skySampler, world_ray.direction, 0.0).xyz;
             }
-
             //Set up for next trace
-            temp_ray.origin = result.position;
-            // 反射
-            temp_ray.direction = normalize(reflect(temp_ray.direction, result.normal));
+            world_ray.origin = world_ray.origin + world_ray.direction * result.t;
+            world_ray.direction = normalize(reflect(world_ray.direction, result.normal)); // 反射
+            
+            object_ray.origin = (scene.inverseModel * vec4<f32>(world_ray.origin, 1.0)).xyz;
+            object_ray.direction = (scene.inverseModel * vec4<f32>(world_ray.direction, 0.0)).xyz;
         }
 
         //Rays which reached terminal state and bounced indefinitely
@@ -211,12 +225,6 @@ fn trace(ray: Ray, lightDir: vec3<f32>, multiplier: f32) -> RenderState{
                 node = stack[stackLocation];
             }
         }
-    }
-
-    if (!renderState.hit) {
-        //sky color
-        //renderState.color = vec3(1.0, 1.0, 1.0);
-        renderState.color = textureSampleLevel(skyTexture, skySampler, ray.direction, 0.0).xyz;
     }
 
     return renderState;
@@ -318,7 +326,8 @@ fn hit_triangle(ray: Ray, tri: Triangle, tMin: f32, tMax: f32, oldRenderState: R
     if (t > tMin && t < tMax) {
 
         renderState.position = ray.origin + t * ray.direction;
-        renderState.normal = n;
+        let normal: vec3<f32> = (1 - u - v) * tri.normal_a + u * tri.normal_b + v * tri.normal_c;
+        renderState.normal = normalize(transpose(scene.inverseModel) * vec4<f32>(normal, 0.0)).xyz;
         renderState.t = t;
         renderState.hit = true;
         // renderState.color = tri.color;
