@@ -15,6 +15,7 @@ export class Renderer {
     format!: GPUTextureFormat
 
     //Assets
+    randomSeed!:GPUBuffer;
     color_buffer!: GPUTexture;
     color_buffer_view!: GPUTextureView
     sampler!: GPUSampler
@@ -128,7 +129,12 @@ export class Renderer {
                     binding: 6,
                     visibility: GPUShaderStage.COMPUTE,
                     sampler: {}
-                }
+                },
+                {
+                    binding: 7,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: "uniform" },
+                },
             ]
 
         });
@@ -182,6 +188,13 @@ export class Renderer {
             parameterBufferDescriptor
         );
 
+        this.randomSeed = this.device.createBuffer({
+            label: "Camera Position Buffer",
+            size: 4,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        }
+        );
+
         // 球
         // const sphereBufferDescriptor: GPUBufferDescriptor = {
         //     size: 8 * this.scene.spheres.length * 4,
@@ -225,12 +238,12 @@ export class Renderer {
         );
 
         const urls = [
-            "public/0/nx.jpg",  //x+
-            "public/0/px.jpg",   //x-
-            "public/0/ny.jpg",   //y+
-            "public/0/py.jpg",  //y-
-            "public/0/nz.jpg", //z+
-            "public/0/pz.jpg",    //z-
+            "public/1/nx.png",  //x+
+            "public/1/px.png",   //x-
+            "public/1/ny.png",   //y+
+            "public/1/py.png",  //y-
+            "public/1/nz.png", //z+
+            "public/1/pz.png",    //z-
             // "public/gfx/sky_front.png",  //x+
             // "public/gfx/sky_back.png",   //x-
             // "public/gfx/sky_left.png",   //y+
@@ -281,6 +294,12 @@ export class Renderer {
                 {
                     binding: 6,
                     resource: this.sky_texture.sampler,
+                },
+                {
+                    binding: 7,
+                    resource: {
+                        buffer: this.randomSeed,
+                    },
                 },
             ]
         });
@@ -421,6 +440,8 @@ export class Renderer {
             triangleIndexData[i] = this.scene.triangleIndices[i];
         }
         this.device.queue.writeBuffer(this.triangleIndexBuffer, 0, triangleIndexData, 0, this.scene.triangleCount);
+        
+        this.device.queue.writeBuffer(this.randomSeed, 0, new Float32Array([Math.random()]));
     }
 
     render = () => {

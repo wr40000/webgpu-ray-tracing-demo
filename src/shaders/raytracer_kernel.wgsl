@@ -56,7 +56,7 @@ struct RenderState {
     normal: vec3<f32>,
 }
 
-const SAMPLES = 10;
+const SAMPLES = 5;
 
 @group(0) @binding(0) var color_buffer: texture_storage_2d<rgba8unorm, write>;
 @group(0) @binding(1) var<uniform> scene: SceneData;
@@ -65,6 +65,8 @@ const SAMPLES = 10;
 @group(0) @binding(4) var<storage, read> triangleLookup: ObjectIndices;
 @group(0) @binding(5) var skyTexture: texture_cube<f32>;
 @group(0) @binding(6) var skySampler: sampler;
+@group(0) @binding(7) var<uniform> random_seed: f32;
+
 
 @compute @workgroup_size(16, 16, 1)
 fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>) {
@@ -82,24 +84,29 @@ fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>) {
     myRay.direction = normalize(forwards + horizontal_coefficient * right + vertical_coefficient * up);
     myRay.origin = scene.cameraPos;
 
-    let pixel_color : vec3<f32> = rayColor(myRay);
+    let pixel_color : vec3<f32> = rayColor(myRay, GlobalInvocationID.x);
 
     textureStore(color_buffer, screen_pos, vec4<f32>(pixel_color, 1.0));
 }
 
-fn rayColor(ray: Ray) -> vec3<f32> {
+fn rayColor(ray: Ray, id:u32) -> vec3<f32> {
     // var color: vec3<f32> = vec3<f32>(1.0, 1.0, 1.0); 
     var color: vec3<f32> = vec3<f32>(0.0, 0.0, 0.0); //my
     var result: RenderState;
     var lightDir: vec3<f32> = vec3<f32>(-1, -1, -1);
-    var multiplier: f32 = 1.0;
 
     var temp_ray: Ray;
     temp_ray.origin = ray.origin;
     temp_ray.direction = ray.direction;
 
     let bounces: u32 = u32(scene.maxBounces);
+    // for (var sample = 0u; sample < SAMPLES; sample++) {
+        var multiplier: f32 = 1.0;
         for(var bounce: u32 = 0; bounce < bounces; bounce++){
+            // temp_ray.origin += fract(sin(dot(
+            //     vec2(f32(id)/exp2(14), random_seed),
+            //     vec2(12.9898, 78.233)
+            //     )) * 43758.5453)/100;
             result = trace(temp_ray, lightDir, multiplier);
             multiplier *= 0.5;
             //unpack color
@@ -120,6 +127,9 @@ fn rayColor(ray: Ray) -> vec3<f32> {
         if (result.hit) {
             color = vec3(0.0, 0.0, 0.0);
         }
+    // }
+    //     color /= SAMPLES;
+    //     color = sqrt(color); // gamma correction ??? idk
         
     return color;
 

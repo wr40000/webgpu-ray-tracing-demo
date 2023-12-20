@@ -74,9 +74,12 @@ export class Scene {
                 ];
 
             const color: vec3 = [
-                0.3 + 0.7 * Math.random(),
-                0.3 + 0.7 * Math.random(),
-                0.3 + 0.7 * Math.random()
+                // 0.3 + 0.7 * Math.random(),
+                // 0.3 + 0.7 * Math.random(),
+                // 0.3 + 0.7 * Math.random()
+                0.0,
+                0.0,
+                0.0,
             ];
 
             this.triangles[i] = new Triangle();
