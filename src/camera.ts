@@ -42,7 +42,7 @@ export class Camera {
 
     this.forwardDirection = glm.vec3.fromValues(0, 0, -1);
     this.upDirection = glm.vec3.fromValues(0, 1, 0);
-    this.position = glm.vec3.fromValues(0, 0, 15);
+    this.position = glm.vec3.fromValues(0, 0, 5);
     // this.position = glm.vec3.fromValues(0, -3, 10);
     // this.forwardDirection = glm.vec3.fromValues(0, -1, 0);
     // this.upDirection = glm.vec3.fromValues(1, 0, 0);

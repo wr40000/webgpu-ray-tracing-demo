@@ -3,91 +3,42 @@ import { Sphere } from './sphere'
 import { Node } from './node';
 import { vec3 } from 'gl-matrix';
 import { Triangle } from './triangle'
+import { ObjMesh } from './obj_mesh';
 
 export class Scene {
     camera: Camera;
     
-    // spheres: Sphere[];
-    // sphereCount: number;
-    // sphereIndices!: number[];
-    
-    triangles: Triangle[]
-    triangleCount: number
+    statue!: ObjMesh
+    triangles!: Triangle[]
+    triangleCount!: number
     triangleIndices!: number[]
 
     nodes!: Node[];
     nodesUsed: number = 0;
 
-    constructor(canvas: HTMLCanvasElement, triangleCount: number) {
+    constructor(canvas: HTMLCanvasElement) {
 
-        // 球
-        // this.spheres = new Array(sphereCount);
-        // this.sphereCount = sphereCount;
-        // for (let i = 0; i < this.spheres.length; i++) {
-        //     const center = [
-        //         (Math.random() - 0.5) * 10, // x
-        //         (Math.random() - 0.5) * 10, //y
-        //         Math.random() * 10, // z
-        //     ];
-        //     const radius = 1;
-        //     const color = [
-        //         Math.abs(Math.random()),
-        //         Math.abs(Math.random()),
-        //         Math.abs(Math.random()),
-        //         // 1.0,
-        //         // 1.0,
-        //         // 1.0,
-        //     ]
-        //     const sphere = new Sphere(center, radius, color);
-
-        //     this.spheres[i] = sphere;
-        // }
-
-        // 三角
-        this.triangleCount = triangleCount;
-        this.triangles = new Array(triangleCount);
-        for (let i = 0; i < this.triangles.length; i++) {
-
-            const center: vec3 = [
-                -50 + 100.0 * Math.random(),
-                -50.0 + 100.0 * Math.random(),
-                -50.0 + 100.0 * Math.random()
-            ];
-
-            const offsets: vec3[] =
-                [
-                    [
-                        -3 + 6 * Math.random(),
-                        -3 + 6 * Math.random(),
-                        -3 + 6 * Math.random()
-                    ],
-                    [
-                        -3 + 6 * Math.random(),
-                        -3 + 6 * Math.random(),
-                        -3 + 6 * Math.random()
-                    ],
-                    [
-                        -3 + 6 * Math.random(),
-                        -3 + 6 * Math.random(),
-                        -3 + 6 * Math.random()
-                    ]
-                ];
-
-            const color: vec3 = [
-                // 0.3 + 0.7 * Math.random(),
-                // 0.3 + 0.7 * Math.random(),
-                // 0.3 + 0.7 * Math.random()
-                0.0,
-                0.0,
-                0.0,
-            ];
-
-            this.triangles[i] = new Triangle();
-            this.triangles[i].build_from_center_and_offsets(center, offsets, color);
-        }
         this.camera = new Camera(canvas, Math.PI / 4, 0.1, 10000, 0.01)
 
-        this.buildBVH()
+    }
+
+    async make_scene() {
+        this.statue = new ObjMesh();
+
+        await this.statue.initialize([1.0, 1.0, 1.0], "public/models/statue.obj");
+
+        //TODO: get the triangle data from the loaded model and put
+        //it into the triangle list
+        this.triangles = [];
+        this.statue.triangles.forEach(
+            (tri) => {
+                this.triangles.push(tri);
+            }
+        )
+
+        this.triangleCount = this.triangles.length;
+
+        this.buildBVH();
     }
 
     // 球的BVH
@@ -212,7 +163,7 @@ export class Scene {
 
     // 三角形的BVH
     buildBVH() {
-
+        
         this.triangleIndices = new Array(this.triangles.length)
         for (var i: number = 0; i < this.triangleCount; i += 1) {
             this.triangleIndices[i] = i;
