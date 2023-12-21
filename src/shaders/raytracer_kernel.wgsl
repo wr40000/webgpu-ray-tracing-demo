@@ -131,7 +131,8 @@ fn rayColor(ray: Ray, id:u32) -> vec3<f32> {
             }
             //Set up for next trace
             world_ray.origin = world_ray.origin + world_ray.direction * result.t;
-            world_ray.direction = normalize(reflect(world_ray.direction, result.normal)); // 反射
+            // world_ray.direction = normalize(reflect(world_ray.direction, result.normal)); // 反射
+            world_ray.direction = normalize(refract(world_ray.direction, result.normal, f32(0.2))); // 折射
             
             object_ray.origin = (scene.inverseModel * vec4<f32>(world_ray.origin, 1.0)).xyz;
             object_ray.direction = (scene.inverseModel * vec4<f32>(world_ray.direction, 0.0)).xyz;
@@ -230,7 +231,15 @@ fn trace(ray: Ray, lightDir: vec3<f32>, multiplier: f32) -> RenderState{
     return renderState;
 }
 
-fn hit_sphere(ray: Ray, sphere: Sphere, tMin: f32, tMax: f32, oldRenderState: RenderState, lightDir: vec3<f32>,multiplier: f32) -> RenderState{
+fn hit_sphere(
+        ray: Ray, 
+        sphere: Sphere, 
+        tMin: f32, 
+        tMax: f32, 
+        oldRenderState: RenderState, 
+        lightDir: vec3<f32>,
+        multiplier: f32
+    ) -> RenderState{
     
     let co: vec3<f32> = ray.origin - sphere.center;
     let a: f32 = dot(ray.direction, ray.direction); 
@@ -261,7 +270,15 @@ fn hit_sphere(ray: Ray, sphere: Sphere, tMin: f32, tMax: f32, oldRenderState: Re
     return renderState;
 }
 
-fn hit_triangle(ray: Ray, tri: Triangle, tMin: f32, tMax: f32, oldRenderState: RenderState, lightDir: vec3<f32>,multiplier: f32)-> RenderState{
+fn hit_triangle(
+    ray: Ray, 
+    tri: Triangle, 
+    tMin: f32, 
+    tMax: f32,
+    oldRenderState: RenderState,
+    lightDir: vec3<f32>,
+    multiplier: f32
+  )-> RenderState{
     //Set up a blank renderstate,
     //right now this hasn't hit anything
     var renderState: RenderState;
@@ -326,8 +343,11 @@ fn hit_triangle(ray: Ray, tri: Triangle, tMin: f32, tMax: f32, oldRenderState: R
     if (t > tMin && t < tMax) {
 
         renderState.position = ray.origin + t * ray.direction;
-        let normal: vec3<f32> = (1 - u - v) * tri.normal_a + u * tri.normal_b + v * tri.normal_c;
-        renderState.normal = normalize(transpose(scene.inverseModel) * vec4<f32>(normal, 0.0)).xyz;
+        var normal: vec3<f32> = (1 - u - v) * tri.normal_a + u * tri.normal_b + v * tri.normal_c;
+        if(dot(normal, ray.direction) > 0)   {
+            normal = -normal;
+        }
+        renderState.normal = normalize(transpose(scene.inverseModel) * vec4<f32>(normal, 0.0)).xyz;     
         renderState.t = t;
         renderState.hit = true;
         // renderState.color = tri.color;

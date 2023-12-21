@@ -39,7 +39,7 @@ export class ObjMesh {
     }
 
     calculate_transform() {
-        let scale:number = 0.3
+        let scale:number = 1.0
         var model: mat4 = mat4.create();
         mat4.scale(model, model, <vec3>[scale,scale,scale])
         mat4.rotateZ(model, model, deg2Rad(this.eulers[2]));
