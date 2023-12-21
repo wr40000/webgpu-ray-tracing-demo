@@ -1,6 +1,7 @@
 import { vec3, vec2, mat4 } from "gl-matrix";
 import { Triangle } from "./triangle";
 import { deg2Rad } from "./math";
+import * as THREE from 'three'
 
 export class ObjMesh {
 
@@ -14,7 +15,7 @@ export class ObjMesh {
 
     position!: vec3
     eulers!: vec3
-    
+
 
     constructor(position: vec3, eulers: vec3) {
 
@@ -39,19 +40,56 @@ export class ObjMesh {
     }
 
     calculate_transform() {
-        let scale:number = 1.0
+        let scale: number = 1.0
         var model: mat4 = mat4.create();
-        mat4.scale(model, model, <vec3>[scale,scale,scale])
+        mat4.translate(model, model, this.position);
+        mat4.scale(model, model, <vec3>[scale, scale, scale])
         mat4.rotateZ(model, model, deg2Rad(this.eulers[2]));
         mat4.rotateY(model, model, deg2Rad(this.eulers[1]));
         mat4.rotateX(model, model, deg2Rad(this.eulers[0]));
-        mat4.translate(model, model, this.position);
         mat4.invert(this.inverseModel, model);
     }
 
     async initialize(color: vec3, url: string) {
-
         this.color = color;
+        if(url == "A"){
+            try {
+                // let cubeOFThree = new THREE.SphereGeometry(1, 32, 16)
+                let cubeOFThree = new THREE.BoxGeometry(1, 1, 1, 10, 10, 10)
+                // let cubeOFThree = new THREE.PlaneGeometry( 2, 2, 192, 192 )
+                // let cubeOFThree = new THREE.TorusGeometry( 1, 0.3, 16, 100 )
+                // let cubeOFThree = new THREE.CylinderGeometry( 1, 1, 1, 32 )
+                let normal = cubeOFThree.attributes.normal.array;
+                let position = cubeOFThree.attributes.position.array;
+                let position1 = []
+                let normal1 = []
+                for (let i = 0; i < position?.length / 3; i++) {
+                    let poarr = [position[3 * i], position[3 * i + 1], position[3 * i + 2]]
+                    let noarr = [normal[3 * i], normal[3 * i + 1], normal[3 * i + 2]]
+                    position1.push(poarr)
+                    normal1.push(noarr)
+                }
+                
+                let uv = cubeOFThree.attributes.uv.array;
+                let index = cubeOFThree.index!.array;
+                
+                for (let i = 0; i < index?.length / 3; i++) {
+                    var tri: Triangle = new Triangle();
+                    tri.corners.push(<vec3>(position1[index[i * 3]]))
+                    tri.normals.push(<vec3>(normal1[index[i * 3]]))
+                    tri.corners.push(<vec3>(position1[index[i * 3 + 1]]))
+                    tri.normals.push(<vec3>(normal1[index[i * 3 + 1]]))
+                    tri.corners.push(<vec3>(position1[index[i * 3 + 2]]))
+                    tri.normals.push(<vec3>(normal1[index[i * 3 + 2]]))
+                    tri.color = this.color;
+                    tri.make_centroid();
+                    this.triangles.push(tri);
+                }
+                return
+            } catch (error) {
+    
+            }
+        }
         await this.readFile(url);
 
     }

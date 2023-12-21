@@ -26,6 +26,7 @@ export class Renderer {
     triangleBuffer!: GPUBuffer;
     triangleIndexBuffer!: GPUBuffer;
     sky_texture!: CubeMapMaterial;
+    cameraBuffer!:GPUBuffer;
 
     // Pipeline objects
     ray_tracing_pipeline!: GPUComputePipeline
@@ -141,6 +142,11 @@ export class Renderer {
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: { type: "uniform" },
                 },
+                {
+                    binding: 8,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: 'uniform' },
+                  },
             ]
 
         });
@@ -244,12 +250,18 @@ export class Renderer {
         );
 
         const urls = [
-            "public/1/nx.png",  //x+
-            "public/1/px.png",   //x-
-            "public/1/ny.png",   //y+
-            "public/1/py.png",  //y-
-            "public/1/nz.png", //z+
-            "public/1/pz.png",    //z-
+            "public/1/px.png",   //x+
+            "public/1/nx.png",  //x-
+            "public/1/py.png",  //y+
+            "public/1/ny.png",   //y-
+            "public/1/pz.png",    //z+
+            "public/1/nz.png", //z-
+            // "public/2/px.png",   //x+
+            // "public/2/nx.png",  //x-
+            // "public/2/py.png",  //y+
+            // "public/2/ny.png",   //y-
+            // "public/2/pz.png",    //z+
+            // "public/2/nz.png", //z-
             // "public/gfx/sky_front.png",  //x+
             // "public/gfx/sky_back.png",   //x-
             // "public/gfx/sky_left.png",   //y+
@@ -259,6 +271,12 @@ export class Renderer {
         ]
         this.sky_texture = new CubeMapMaterial();
         await this.sky_texture.initialize(this.device, urls);
+
+        this.cameraBuffer = this.device.createBuffer({
+            label: "CameraBuffer",
+            size: 16 * 4 * 2,
+            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM
+        })
     }
 
     async makeBindGroups() {
@@ -307,6 +325,12 @@ export class Renderer {
                         buffer: this.randomSeed,
                     },
                 },
+                {
+                    binding: 8,
+                    resource: {
+                      buffer: this.cameraBuffer,
+                    },
+                  },
             ]
         });
 
@@ -375,10 +399,27 @@ export class Renderer {
     }
 
     prepareScene() {
+        this.count++
         this.scene.camera.recalculateProjection(); // 更新相机内置的canvas宽高
         this.scene.camera.updatePos()
         let rightVec = vec3.fromValues(0, 0, 3);
         vec3.cross(rightVec, this.scene.camera.forwardDirection, this.scene.camera.upDirection);
+        vec3.cross(this.scene.camera.upDirection, rightVec, this.scene.camera.forwardDirection);
+        // if(this.count % 240 == 1){
+        //     console.log("<---  ",
+        //     this.scene.camera.position,
+        //     this.scene.camera.forwardDirection,
+        //     rightVec,
+        //     this.scene.camera.upDirection,
+        //     "--->"
+        //     );
+        // }
+        this.device.queue.writeBuffer(
+            this.cameraBuffer, 0,
+            new Float32Array(
+                this.scene.camera.inverseProjection.concat(this.scene.camera.inverseView)
+              ),
+        )
         const sceneData = {
             cameraPos: this.scene.camera.position,
             cameraForwards: this.scene.camera.forwardDirection,

@@ -23,7 +23,7 @@ export class Scene {
     }
 
     async make_scene() {
-        this.statue = new ObjMesh([0, -0, 0], [180,0,0]);
+        this.statue = new ObjMesh([0, -0, 0], [0,0,0]);
 
         await this.statue.initialize([0.0, 0.0, 0.0], "public/models/tree.obj");
 

@@ -1,5 +1,7 @@
 import { Scene } from "./scene";
 import { Renderer } from "./renderer";
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+
 
 const init = async () => {
     const canvas: HTMLCanvasElement = <HTMLCanvasElement>document.getElementById("gfx-main");
@@ -7,7 +9,6 @@ const init = async () => {
     const triangleCountLabel: HTMLElement = <HTMLElement>document.getElementById("triangle-count");
     
     const scene: Scene = new Scene(canvas);
-    
     await scene.make_scene();
     
     triangleCountLabel.innerText = scene.triangleCount.toString();
@@ -20,3 +21,5 @@ const init = async () => {
 }
 
 init()
+
+

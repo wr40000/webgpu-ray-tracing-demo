@@ -63,6 +63,11 @@ struct RenderState {
     normal: vec3<f32>,
 }
 
+struct Camera {
+  inverse_projection: mat4x4<f32>,
+  inverse_view: mat4x4<f32>,
+}
+
 const SAMPLES = 5;
 
 @group(0) @binding(0) var color_buffer: texture_storage_2d<rgba8unorm, write>;
@@ -73,6 +78,8 @@ const SAMPLES = 5;
 @group(0) @binding(5) var skyTexture: texture_cube<f32>;
 @group(0) @binding(6) var skySampler: sampler;
 @group(0) @binding(7) var<uniform> random_seed: f32;
+@group(0) @binding(8) var<uniform> camera: Camera;
+
 
 
 @compute @workgroup_size(16, 16, 1)
@@ -87,8 +94,22 @@ fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>) {
     let right: vec3<f32> = scene.cameraRight;
     let up: vec3<f32> = scene.cameraUp;
 
+    //  <---
+    let current_pixel = vec2<f32>(screen_pos);
+    let pixel_center = (current_pixel + vec2(.5, .5)) / vec2<f32>(screen_size);
+
+    // stands for normalized device coordinate
+    let ndc: vec2<f32> = vec2(2., -2.) * pixel_center + vec2(-1., 1.);
+    let ray_target: vec4<f32> = camera.inverse_projection * vec4<f32>(ndc.x, ndc.y, 1., 1.);
+    let pixel_ray_direction: vec4<f32> = camera.inverse_view * vec4<f32>(
+        normalize(vec3<f32>(ray_target.xyz) / ray_target.w),
+        0.
+    );
+    //  --->
+
     var myRay: Ray;
-    myRay.direction = normalize(forwards + horizontal_coefficient * right + vertical_coefficient * up);
+    // myRay.direction = normalize(forwards + horizontal_coefficient * right + vertical_coefficient * up);
+    myRay.direction = pixel_ray_direction.xyz;
     myRay.origin = scene.cameraPos;
 
     let pixel_color : vec3<f32> = rayColor(myRay, GlobalInvocationID.x);
@@ -131,8 +152,8 @@ fn rayColor(ray: Ray, id:u32) -> vec3<f32> {
             }
             //Set up for next trace
             world_ray.origin = world_ray.origin + world_ray.direction * result.t;
-            // world_ray.direction = normalize(reflect(world_ray.direction, result.normal)); // 反射
-            world_ray.direction = normalize(refract(world_ray.direction, result.normal, f32(0.2))); // 折射
+            world_ray.direction = normalize(reflect(world_ray.direction, result.normal)); // 反射
+            // world_ray.direction = normalize(refract(world_ray.direction, result.normal, f32(0.2))); // 折射
             
             object_ray.origin = (scene.inverseModel * vec4<f32>(world_ray.origin, 1.0)).xyz;
             object_ray.direction = (scene.inverseModel * vec4<f32>(world_ray.direction, 0.0)).xyz;
@@ -344,9 +365,6 @@ fn hit_triangle(
 
         renderState.position = ray.origin + t * ray.direction;
         var normal: vec3<f32> = (1 - u - v) * tri.normal_a + u * tri.normal_b + v * tri.normal_c;
-        if(dot(normal, ray.direction) > 0)   {
-            normal = -normal;
-        }
         renderState.normal = normalize(transpose(scene.inverseModel) * vec4<f32>(normal, 0.0)).xyz;     
         renderState.t = t;
         renderState.hit = true;

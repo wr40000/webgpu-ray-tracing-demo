@@ -61,6 +61,8 @@ export class Triangle {
     }
 
     make_centroid() {
+        // console.log(this.corners);
+        
         this.centroid = [
             (this.corners[0][0] + this.corners[1][0] + this.corners[2][0]) / 3,
             (this.corners[0][1] + this.corners[1][1] + this.corners[2][1]) / 3,
