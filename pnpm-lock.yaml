@@ -16,6 +16,9 @@ dependencies:
     version: 0.159.0
 
 devDependencies:
+  '@types/dat.gui':
+    specifier: ^0.7.12
+    version: 0.7.12
   '@types/three':
     specifier: ^0.159.0
     version: 0.159.0
@@ -340,6 +343,10 @@ packages:
     requiresBuild: true
     dev: true
     optional: true
+
+  /@types/dat.gui@0.7.12:
+    resolution: {integrity: sha512-el5dYeQZu2r6YW6Ft4rGtjr/dLe/uzXESMoie5UM6/weVShB1V8IRpXtTKrczd4qe7044fTKZS2l8d6EBFOkoA==}
+    dev: true
 
   /@types/stats.js@0.17.3:
     resolution: {integrity: sha512-pXNfAD3KHOdif9EQXZ9deK82HVNaXP5ZIF5RP2QG6OQFNTaY2YIetfrE9t528vEreGQvEPRDDc8muaoYeK0SxQ==}

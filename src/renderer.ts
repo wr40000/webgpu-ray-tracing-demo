@@ -1,12 +1,18 @@
 import raytracer_kernel from "./shaders/raytracer_kernel.wgsl?raw"
 import screen_shader from "./shaders/screen_shader.wgsl?raw"
 import { Scene } from "./scene";
-import { vec3 } from "gl-matrix";
+import { vec3, vec4 } from "gl-matrix";
 import { CubeMapMaterial } from "./cube_material";
+import * as dat from 'dat.gui'
+import { GUIOBJ } from "./GUI";
 
 export class Renderer {
     canvas!: HTMLCanvasElement;
     count: number;
+
+    // GUI
+    gui: dat.GUI;
+    cameraGUI: dat.GUI;
 
     // Device/Context objects
     adapter!: GPUAdapter
@@ -15,7 +21,7 @@ export class Renderer {
     format!: GPUTextureFormat
 
     //Assets
-    randomSeed!:GPUBuffer;
+    randomSeed!: GPUBuffer;
     color_buffer!: GPUTexture;
     color_buffer_view!: GPUTextureView
     sampler!: GPUSampler
@@ -26,7 +32,9 @@ export class Renderer {
     triangleBuffer!: GPUBuffer;
     triangleIndexBuffer!: GPUBuffer;
     sky_texture!: CubeMapMaterial;
-    cameraBuffer!:GPUBuffer;
+    obj_texture1!: GPUTexture;
+    cameraBuffer!: GPUBuffer;
+    dirLight!: vec4
 
     // Pipeline objects
     ray_tracing_pipeline!: GPUComputePipeline
@@ -43,10 +51,15 @@ export class Renderer {
     constructor(canvas: HTMLCanvasElement, scene: Scene) {
         this.canvas = canvas;
         this.scene = scene
+        this.dirLight = <vec4>[-1,-1,-1,1]
         this.count = 0
+        this.gui = new dat.GUI()
+        this.cameraGUI = this.gui.addFolder("相机控件")
     }
 
     async Initialize() {
+
+        this.setGUI()
 
         await this.setupDevice();
 
@@ -62,6 +75,30 @@ export class Renderer {
         this.loaded = false;
 
         this.render()
+    }
+
+    setGUI(){
+        this.cameraGUI.add(GUIOBJ.cameraP, 'x')
+            .min(-40)
+            .max(40)
+            .step(2)
+            .name('Camera-X').onChange((value) => {
+                this.scene.camera.position[0] = value
+            });
+        this.cameraGUI.add(GUIOBJ.cameraP, 'y')
+            .min(-40)
+            .max(40)
+            .step(2)
+            .name('Camera-Y').onChange((value) => {
+                this.scene.camera.position[1] = value
+            });
+        this.cameraGUI.add(GUIOBJ.cameraP, 'z')
+            .min(-40)
+            .max(40)
+            .step(2)
+            .name('Camera-Z').onChange((value) => {
+                this.scene.camera.position[2] = value
+            });
     }
 
     async setupDevice() {
@@ -146,7 +183,12 @@ export class Renderer {
                     binding: 8,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: { type: 'uniform' },
-                  },
+                },
+                {
+                    binding: 9,
+                    visibility: GPUShaderStage.COMPUTE,
+                    texture: {}
+                },
             ]
 
         });
@@ -193,7 +235,7 @@ export class Renderer {
 
         const parameterBufferDescriptor: GPUBufferDescriptor = {
             label: 'sceneParameters',
-            size: 128,
+            size: 144,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         };
         this.sceneParameters = this.device.createBuffer(
@@ -207,26 +249,9 @@ export class Renderer {
         }
         );
 
-        // 球
-        // const sphereBufferDescriptor: GPUBufferDescriptor = {
-        //     size: 8 * this.scene.spheres.length * 4,
-        //     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-        // };
-        // this.sphereBuffer = this.device.createBuffer(
-        //     sphereBufferDescriptor
-        // );
-
-        // const sphereIndexBufferDescriptor: GPUBufferDescriptor = {
-        //     size: 4 * this.scene.sphereCount,
-        //     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-        // };
-        // this.sphereIndexBuffer = this.device.createBuffer(
-        //     sphereIndexBufferDescriptor
-        // );
-
         // 三角
         const triangleBufferDescriptor: GPUBufferDescriptor = {
-            size: 28 * 4 * this.scene.triangleCount,
+            size: 40 * 4 * this.scene.triangleCount,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         };
         this.triangleBuffer = this.device.createBuffer(
@@ -250,18 +275,18 @@ export class Renderer {
         );
 
         const urls = [
-            "public/1/px.png",   //x+
-            "public/1/nx.png",  //x-
-            "public/1/py.png",  //y+
-            "public/1/ny.png",   //y-
-            "public/1/pz.png",    //z+
-            "public/1/nz.png", //z-
-            // "public/2/px.png",   //x+
-            // "public/2/nx.png",  //x-
-            // "public/2/py.png",  //y+
-            // "public/2/ny.png",   //y-
-            // "public/2/pz.png",    //z+
-            // "public/2/nz.png", //z-
+            // "public/1/px.png",   //x+
+            // "public/1/nx.png",  //x-
+            // "public/1/py.png",  //y+
+            // "public/1/ny.png",   //y-
+            // "public/1/pz.png",    //z+
+            // "public/1/nz.png", //z-
+            "public/2/px.png",   //x+
+            "public/2/nx.png",  //x-
+            "public/2/py.png",  //y+
+            "public/2/ny.png",   //y-
+            "public/2/pz.png",    //z+
+            "public/2/nz.png", //z-
             // "public/gfx/sky_front.png",  //x+
             // "public/gfx/sky_back.png",   //x-
             // "public/gfx/sky_left.png",   //y+
@@ -277,6 +302,24 @@ export class Renderer {
             size: 16 * 4 * 2,
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM
         })
+        {
+            const response = await fetch(
+                // new URL('../public/imgs/ys.png', import.meta.url).toString()
+                new URL('../public/imgs/sphere.jpg', import.meta.url).toString()
+            )
+            const imgBitmap = await createImageBitmap(await response.blob())
+            this.obj_texture1 = this.device.createTexture({
+                size: [imgBitmap.width, imgBitmap.height, 1],
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST 
+                            | GPUTextureUsage.RENDER_ATTACHMENT
+            })
+            this.device.queue.copyExternalImageToTexture(
+                {source: imgBitmap},
+                {texture: this.obj_texture1},
+                [imgBitmap.width, imgBitmap.height]
+            )
+        }
     }
 
     async makeBindGroups() {
@@ -328,9 +371,13 @@ export class Renderer {
                 {
                     binding: 8,
                     resource: {
-                      buffer: this.cameraBuffer,
+                        buffer: this.cameraBuffer,
                     },
-                  },
+                },
+                {
+                    binding: 9,
+                    resource: this.obj_texture1.createView(),
+                },
             ]
         });
 
@@ -398,7 +445,7 @@ export class Renderer {
         });
     }
 
-    prepareScene() {
+    prepareScene(start: number) {
         this.count++
         this.scene.camera.recalculateProjection(); // 更新相机内置的canvas宽高
         this.scene.camera.updatePos()
@@ -418,7 +465,7 @@ export class Renderer {
             this.cameraBuffer, 0,
             new Float32Array(
                 this.scene.camera.inverseProjection.concat(this.scene.camera.inverseView)
-              ),
+            ),
         )
         const sceneData = {
             cameraPos: this.scene.camera.position,
@@ -428,8 +475,11 @@ export class Renderer {
             cameraUp: this.scene.camera.upDirection,
             triangleCount: this.scene.triangleCount,
             inverseModel: this.scene.statue.inverseModel,
+            dirLight: this.dirLight
         }
         const maxBounces: number = 4;
+        this.dirLight[0] = Math.sin(start / 1500)
+        this.dirLight[2] = Math.cos(start / 1500)
         this.device.queue.writeBuffer(
             this.sceneParameters, 0,
             new Float32Array(
@@ -450,35 +500,49 @@ export class Renderer {
                     sceneData.cameraUp[1],
                     sceneData.cameraUp[2],
                     sceneData.triangleCount,
-                    ...sceneData.inverseModel
+                    ...sceneData.inverseModel,
+                    ...this.dirLight
                 ]
-            ), 0, 32
+            ), 0, 36
         )
-
 
         if (this.loaded) {
             return;
         }
         this.loaded = true;
-        const triangleData: Float32Array = new Float32Array(28 * this.scene.triangleCount);
+        const triangleData: Float32Array = new Float32Array((28 + 12) * this.scene.triangleCount);
         for (let i = 0; i < this.scene.triangleCount; i++) {
             for (var corner = 0; corner < 3; corner++) {
-                triangleData[28*i + 8 * corner]     = this.scene.triangles[i].corners[corner][0];
-                triangleData[28*i + 8 * corner + 1] = this.scene.triangles[i].corners[corner][1];
-                triangleData[28*i + 8 * corner + 2] = this.scene.triangles[i].corners[corner][2];
-                triangleData[28*i + 8 * corner + 3] = 0.0;
+                triangleData[40*i + 8 * corner]     = this.scene.triangles[i].corners[corner][0];
+                triangleData[40*i + 8 * corner + 1] = this.scene.triangles[i].corners[corner][1];
+                triangleData[40*i + 8 * corner + 2] = this.scene.triangles[i].corners[corner][2];
+                triangleData[40*i + 8 * corner + 3] = 0.0;
 
-                triangleData[28*i + 8 * corner + 4] = this.scene.triangles[i].normals[corner][0];
-                triangleData[28*i + 8 * corner + 5] = this.scene.triangles[i].normals[corner][1];
-                triangleData[28*i + 8 * corner + 6] = this.scene.triangles[i].normals[corner][2];
-                triangleData[28*i + 8 * corner + 7] = 0.0;
+                triangleData[40*i + 8 * corner + 4] = this.scene.triangles[i].normals[corner][0];
+                triangleData[40*i + 8 * corner + 5] = this.scene.triangles[i].normals[corner][1];
+                triangleData[40*i + 8 * corner + 6] = this.scene.triangles[i].normals[corner][2];
+                triangleData[40*i + 8 * corner + 7] = 0.0;
+
             }
             for (var channel = 0; channel < 3; channel++) {
-                triangleData[28*i + 24 + channel] = this.scene.triangles[i].color[channel];
+                triangleData[40*i + 24 + channel] = this.scene.triangles[i].color[channel];
             }
-            triangleData[28*i + 27] = 0.0;
+            triangleData[40*i + 27] = 0.0;
+
+            triangleData[40*i + 28] = this.scene.triangles[i].uvs[0][0];
+            triangleData[40*i + 29] = this.scene.triangles[i].uvs[0][1];
+            triangleData[40*i + 30] = 0.0;
+            triangleData[40*i + 31] = 0.0;
+            triangleData[40*i + 32] = this.scene.triangles[i].uvs[1][0];
+            triangleData[40*i + 33] = this.scene.triangles[i].uvs[1][1];
+            triangleData[40*i + 34] = 0.0;
+            triangleData[40*i + 35] = 0.0;
+            triangleData[40*i + 36] = this.scene.triangles[i].uvs[2][0];
+            triangleData[40*i + 37] = this.scene.triangles[i].uvs[2][1];
+            triangleData[40*i + 38] = 0.0;
+            triangleData[40*i + 39] = 0.0;
         }
-        this.device.queue.writeBuffer(this.triangleBuffer, 0, triangleData, 0, 16 * this.scene.triangleCount);
+        this.device.queue.writeBuffer(this.triangleBuffer, 0, triangleData, 0, 40 * this.scene.triangleCount);
 
         const nodeData: Float32Array = new Float32Array(8 * this.scene.nodesUsed);
         for (let i = 0; i < this.scene.nodesUsed; i++) {
@@ -498,17 +562,17 @@ export class Renderer {
             triangleIndexData[i] = this.scene.triangleIndices[i];
         }
         this.device.queue.writeBuffer(this.triangleIndexBuffer, 0, triangleIndexData, 0, this.scene.triangleCount);
-        
+
         this.device.queue.writeBuffer(this.randomSeed, 0, new Float32Array([Math.random()]));
     }
 
     render = () => {
-        
+
         let start: number = performance.now();
 
-        this.scene.update(this.frametime);
+        // this.scene.update(this.frametime);
 
-        this.prepareScene();
+        this.prepareScene(start);
 
         const commandEncoder: GPUCommandEncoder = this.device.createCommandEncoder();
 
@@ -540,7 +604,7 @@ export class Renderer {
             () => {
                 let end: number = performance.now();
                 this.frametime = end - start;
-                let performanceLabel: HTMLElement =  <HTMLElement> document.getElementById("render-time");
+                let performanceLabel: HTMLElement = <HTMLElement>document.getElementById("render-time");
                 if (performanceLabel) {
                     performanceLabel.innerText = this.frametime.toString();
                 }

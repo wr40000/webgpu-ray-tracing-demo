@@ -18,12 +18,12 @@ export class Scene {
 
     constructor(canvas: HTMLCanvasElement) {
 
-        this.camera = new Camera(canvas, Math.PI / 4, 0.1, 10000, 0.05)
+        this.camera = new Camera(canvas, Math.PI / 4, 0.1, 10000, 0.015)
 
     }
 
     async make_scene() {
-        this.statue = new ObjMesh([0, -0, 0], [0,0,0]);
+        this.statue = new ObjMesh([0, -1, 0], [0,0,0]);
 
         await this.statue.initialize([0.0, 0.0, 0.0], "public/models/tree.obj");
 
@@ -42,7 +42,7 @@ export class Scene {
     }
 
     update(frametime: number) {
-        // this.statue.update(frametime / 16.667);
+        this.statue.update(frametime / 16.667);
     }
 
     // 球的BVH

@@ -52,45 +52,60 @@ export class ObjMesh {
 
     async initialize(color: vec3, url: string) {
         this.color = color;
-        if(url == "A"){
+        // if(url == "A"){
             try {
-                // let cubeOFThree = new THREE.SphereGeometry(1, 32, 16)
-                let cubeOFThree = new THREE.BoxGeometry(1, 1, 1, 10, 10, 10)
+                let cubeOFThree = new THREE.SphereGeometry(5, 32, 16)
+                // let cubeOFThree = new THREE.BoxGeometry(1, 1, 1, 10, 10, 10)
                 // let cubeOFThree = new THREE.PlaneGeometry( 2, 2, 192, 192 )
                 // let cubeOFThree = new THREE.TorusGeometry( 1, 0.3, 16, 100 )
                 // let cubeOFThree = new THREE.CylinderGeometry( 1, 1, 1, 32 )
+                // let cubeOFThree = new THREE.TorusKnotGeometry( 1, 0.3, 100, 16 );
                 let normal = cubeOFThree.attributes.normal.array;
+                let uv = cubeOFThree.attributes.uv.array;
                 let position = cubeOFThree.attributes.position.array;
                 let position1 = []
                 let normal1 = []
+                let uv1 = []
+                
                 for (let i = 0; i < position?.length / 3; i++) {
                     let poarr = [position[3 * i], position[3 * i + 1], position[3 * i + 2]]
-                    let noarr = [normal[3 * i], normal[3 * i + 1], normal[3 * i + 2]]
+                    let noarr = [
+                        Number(normal[3 * i]).valueOf(),
+                        Number(normal[3 * i + 1]).valueOf(),
+                        Number(normal[3 * i + 2]).valueOf()]
+                    let uvarr = [
+                        Number(uv[2 * i]).valueOf(),
+                        Number(uv[2 * i + 1]).valueOf(),
+                    ]
                     position1.push(poarr)
                     normal1.push(noarr)
+                    uv1.push(uvarr)
                 }
                 
-                let uv = cubeOFThree.attributes.uv.array;
                 let index = cubeOFThree.index!.array;
                 
                 for (let i = 0; i < index?.length / 3; i++) {
                     var tri: Triangle = new Triangle();
                     tri.corners.push(<vec3>(position1[index[i * 3]]))
-                    tri.normals.push(<vec3>(normal1[index[i * 3]]))
+                    tri.normals.push(<vec3>(normal1[Number(index[i * 3]).valueOf()]))
+                    tri.uvs.push(<vec2>(uv1[Number(index[i * 3]).valueOf()]))
                     tri.corners.push(<vec3>(position1[index[i * 3 + 1]]))
-                    tri.normals.push(<vec3>(normal1[index[i * 3 + 1]]))
+                    tri.normals.push(<vec3>(normal1[Number(index[i * 3 + 1]).valueOf()]))
+                    tri.uvs.push(<vec2>(uv1[Number(index[i * 3 + 1]).valueOf()]))
                     tri.corners.push(<vec3>(position1[index[i * 3 + 2]]))
-                    tri.normals.push(<vec3>(normal1[index[i * 3 + 2]]))
+                    tri.normals.push(<vec3>(normal1[Number(index[i * 3 + 2]).valueOf()]))
+                    tri.uvs.push(<vec2>(uv1[Number(index[i * 3 + 2]).valueOf()]))
                     tri.color = this.color;
                     tri.make_centroid();
                     this.triangles.push(tri);
                 }
+                
                 return
             } catch (error) {
     
             }
-        }
-        await this.readFile(url);
+        // }
+        // await this.readFile(url);
 
     }
 
@@ -192,5 +207,6 @@ export class ObjMesh {
         const vn = this.vn[Number(v_vt_vn[2]).valueOf() - 1];
         tri.corners.push(v)
         tri.normals.push(vn)
+        tri.uvs.push(vt)
     }
 }

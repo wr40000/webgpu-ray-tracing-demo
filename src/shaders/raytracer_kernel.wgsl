@@ -19,6 +19,11 @@ struct Triangle {
     //float
     color: vec3<f32>,
     //float
+    uv_a: vec4<f32>,
+    //float
+    uv_b: vec4<f32>,
+    //float
+    uv_c: vec4<f32>,
 }
 
 struct ObjectData {
@@ -53,6 +58,7 @@ struct SceneData {
     cameraUp: vec3<f32>,
     primitiveCount: f32,
     inverseModel: mat4x4<f32>,
+    dirLight: vec4<f32>
 }
 
 struct RenderState {
@@ -79,6 +85,7 @@ const SAMPLES = 5;
 @group(0) @binding(6) var skySampler: sampler;
 @group(0) @binding(7) var<uniform> random_seed: f32;
 @group(0) @binding(8) var<uniform> camera: Camera;
+@group(0) @binding(9) var obj_texture1: texture_2d<f32>;
 
 
 
@@ -121,7 +128,7 @@ fn rayColor(ray: Ray, id:u32) -> vec3<f32> {
     // var color: vec3<f32> = vec3<f32>(1.0, 1.0, 1.0); 
     var color: vec3<f32> = vec3<f32>(0.0, 0.0, 0.0); //my
     var result: RenderState;
-    var lightDir: vec3<f32> = vec3<f32>(-1, -1, -1);
+    var lightDir: vec3<f32> = vec3<f32>(scene.dirLight.xyz);
 
     var world_ray: Ray;
     var object_ray: Ray;
@@ -134,7 +141,7 @@ fn rayColor(ray: Ray, id:u32) -> vec3<f32> {
 
     let bounces: u32 = u32(scene.maxBounces);
     // for (var sample = 0u; sample < SAMPLES; sample++) {
-        var multiplier: f32 = 1.0;
+        var multiplier: vec3<f32> = vec3<f32>(1.0, 1.0, 1.0);
         for(var bounce: u32 = 0; bounce < bounces; bounce++){
             // temp_ray.origin += fract(sin(dot(
             //     vec2(f32(id)/exp2(14), random_seed),
@@ -148,7 +155,7 @@ fn rayColor(ray: Ray, id:u32) -> vec3<f32> {
             //early exit
             if (!result.hit) {
                 //sky color
-                color = textureSampleLevel(skyTexture, skySampler, world_ray.direction, 0.0).xyz;
+                color = color + multiplier * textureSampleLevel(skyTexture, skySampler, world_ray.direction, 0.0).xyz;
             }
             //Set up for next trace
             world_ray.origin = world_ray.origin + world_ray.direction * result.t;
@@ -160,9 +167,6 @@ fn rayColor(ray: Ray, id:u32) -> vec3<f32> {
         }
 
         //Rays which reached terminal state and bounced indefinitely
-        if (result.hit) {
-            color = vec3(0.0, 0.0, 0.0);
-        }
     // }
     //     color /= SAMPLES;
     //     color = sqrt(color); // gamma correction ??? idk
@@ -171,7 +175,7 @@ fn rayColor(ray: Ray, id:u32) -> vec3<f32> {
 
 }
 
-fn trace(ray: Ray, lightDir: vec3<f32>, multiplier: f32) -> RenderState{
+fn trace(ray: Ray, lightDir: vec3<f32>, multiplier: vec3<f32>) -> RenderState{
 
     //Set up the Render State
     var renderState: RenderState;
@@ -259,7 +263,7 @@ fn hit_sphere(
         tMax: f32, 
         oldRenderState: RenderState, 
         lightDir: vec3<f32>,
-        multiplier: f32
+        multiplier: vec3<f32>
     ) -> RenderState{
     
     let co: vec3<f32> = ray.origin - sphere.center;
@@ -298,7 +302,7 @@ fn hit_triangle(
     tMax: f32,
     oldRenderState: RenderState,
     lightDir: vec3<f32>,
-    multiplier: f32
+    multiplier: vec3<f32>
   )-> RenderState{
     //Set up a blank renderstate,
     //right now this hasn't hit anything
@@ -365,13 +369,14 @@ fn hit_triangle(
 
         renderState.position = ray.origin + t * ray.direction;
         var normal: vec3<f32> = (1 - u - v) * tri.normal_a + u * tri.normal_b + v * tri.normal_c;
+        var uv: vec2<f32> = (1 - u - v) * tri.uv_a.xy + u * tri.uv_b.xy + v * tri.uv_c.xy;
         renderState.normal = normalize(transpose(scene.inverseModel) * vec4<f32>(normal, 0.0)).xyz;     
         renderState.t = t;
         renderState.hit = true;
-        // renderState.color = tri.color;
-        let light_dir = normalize(lightDir);
+        let light_dir = normalize(transpose(scene.inverseModel) * vec4<f32>(lightDir, 0.0)).xyz;
         let light_intensity: f32 = max(dot(renderState.normal, -light_dir), 0.0f); // cos(angle)
-        renderState.color += tri.color * light_intensity * multiplier;
+        renderState.color += textureSampleLevel(obj_texture1, skySampler, uv, 0.0).xyz * light_intensity * multiplier;
+        // renderState.color += tri.color * light_intensity * multiplier;
         return renderState;
     }
 

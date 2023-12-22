@@ -1,9 +1,10 @@
-import { vec3 } from "gl-matrix";
+import { vec2, vec3 } from "gl-matrix";
 
 export class Triangle {
 
     corners: vec3[] = []
     normals!: vec3[]
+    uvs: vec2[] = []
     color!: vec3
     centroid!: vec3
 
