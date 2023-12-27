@@ -7,7 +7,7 @@
 ```
 https://youtu.be/UBqme9A_O3c?si=4vEQ6dcxMEhLZEgs
 ```
-
+非常感谢 **GetIntoGameDev** 的免费教程，受益匪浅！
 代码大致更改如下,
 
 + 更换相机控件, 鼠标右键按住不松 + `w` / `a` / `s` / `d` /  `q` /`e` 
