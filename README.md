@@ -8,7 +8,7 @@
 https://youtu.be/UBqme9A_O3c?si=4vEQ6dcxMEhLZEgs
 ```
 
-代码略有更改
+代码大致更改如下,
 
 + 更换相机控件, 鼠标右键按住不松 + `w` / `a` / `s` / `d` /  `q` /`e` 
 + 添加Threejs几何Mesh作为场景物体
