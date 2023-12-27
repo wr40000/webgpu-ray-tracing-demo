@@ -1,7 +1,5 @@
 import { Scene } from "./scene";
 import { Renderer } from "./renderer";
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-
 
 const init = async () => {
     const canvas: HTMLCanvasElement = <HTMLCanvasElement>document.getElementById("gfx-main");

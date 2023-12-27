@@ -175,7 +175,7 @@ export class ObjMesh {
         this.vn.push(new_normal);
     }
 
-    read_face_data(line: string, result: number[]) {
+    read_face_data(line: string, _result: number[] = []) {
 
         line = line.replace("\n", "");
         const vertex_descriptions = line.split(" ");

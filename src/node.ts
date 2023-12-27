@@ -10,8 +10,8 @@ import { vec3 } from "gl-matrix"
 
 // 三角
 export class Node {
-    minCorner: vec3
-    leftChild: number
-    maxCorner: vec3
-    primitiveCount: number
+    minCorner!: vec3
+    leftChild!: number
+    maxCorner!: vec3
+    primitiveCount!: number
 }

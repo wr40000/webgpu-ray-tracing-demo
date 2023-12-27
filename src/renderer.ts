@@ -473,11 +473,17 @@ export class Renderer {
         //     "--->"
         //     );
         // }
+        const concatenatedArray = new Float32Array(this.scene.camera.inverseProjection.length 
+                                                + this.scene.camera.inverseView.length);
+        // 将两个矩阵的元素拷贝到数组中
+        concatenatedArray.set(this.scene.camera.inverseProjection);
+        concatenatedArray.set(this.scene.camera.inverseView, this.scene.camera.inverseProjection.length);                                                
         this.device.queue.writeBuffer(
             this.cameraBuffer, 0,
-            new Float32Array(
-                this.scene.camera.inverseProjection.concat(this.scene.camera.inverseView)
-            ),
+            concatenatedArray
+            // new Float32Array(
+            //     this.scene.camera.inverseProjection.concat(this.scene.camera.inverseView)
+            // ),
         )
         const sceneData = {
             cameraPos: this.scene.camera.position,
