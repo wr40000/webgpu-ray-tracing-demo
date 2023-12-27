@@ -275,18 +275,30 @@ export class Renderer {
         );
 
         const urls = [
+            // "public/0/px.jpg",   //x+
+            // "public/0/nx.jpg",  //x-
+            // "public/0/py.jpg",  //y+
+            // "public/0/ny.jpg",   //y-
+            // "public/0/pz.jpg",    //z+
+            // "public/0/nz.jpg", //z-
             // "public/1/px.png",   //x+
             // "public/1/nx.png",  //x-
             // "public/1/py.png",  //y+
             // "public/1/ny.png",   //y-
             // "public/1/pz.png",    //z+
             // "public/1/nz.png", //z-
-            "public/2/px.png",   //x+
-            "public/2/nx.png",  //x-
-            "public/2/py.png",  //y+
-            "public/2/ny.png",   //y-
-            "public/2/pz.png",    //z+
-            "public/2/nz.png", //z-
+            // "public/2/px.png",   //x+
+            // "public/2/nx.png",  //x-
+            // "public/2/py.png",  //y+
+            // "public/2/ny.png",   //y-
+            // "public/2/pz.png",    //z+
+            // "public/2/nz.png", //z-
+            "public/3/px.jpg",   //x+
+            "public/3/nx.jpg",  //x-
+            "public/3/py.jpg",  //y+
+            "public/3/ny.jpg",   //y-
+            "public/3/pz.jpg",    //z+
+            "public/3/nz.jpg", //z-
             // "public/gfx/sky_front.png",  //x+
             // "public/gfx/sky_back.png",   //x-
             // "public/gfx/sky_left.png",   //y+

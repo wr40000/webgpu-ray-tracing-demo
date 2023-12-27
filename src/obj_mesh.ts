@@ -52,7 +52,7 @@ export class ObjMesh {
 
     async initialize(color: vec3, url: string) {
         this.color = color;
-        // if(url == "A"){
+        if(url == "A"){
             try {
                 let cubeOFThree = new THREE.SphereGeometry(5, 32, 16)
                 // let cubeOFThree = new THREE.BoxGeometry(1, 1, 1, 10, 10, 10)
@@ -104,8 +104,8 @@ export class ObjMesh {
             } catch (error) {
     
             }
-        // }
-        // await this.readFile(url);
+        }
+        await this.readFile(url);
 
     }
 

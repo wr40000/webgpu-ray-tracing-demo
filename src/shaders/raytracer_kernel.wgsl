@@ -140,7 +140,7 @@ fn rayColor(ray: Ray, id:u32) -> vec3<f32> {
     object_ray.direction = (scene.inverseModel * vec4<f32>(ray.direction, 0.0)).xyz;
 
     let bounces: u32 = u32(scene.maxBounces);
-    // for (var sample = 0u; sample < SAMPLES; sample++) {
+    for (var sample = 0u; sample < SAMPLES; sample++) {
         var multiplier: vec3<f32> = vec3<f32>(1.0, 1.0, 1.0);
         for(var bounce: u32 = 0; bounce < bounces; bounce++){
             // temp_ray.origin += fract(sin(dot(
@@ -167,9 +167,9 @@ fn rayColor(ray: Ray, id:u32) -> vec3<f32> {
         }
 
         //Rays which reached terminal state and bounced indefinitely
-    // }
-    //     color /= SAMPLES;
-    //     color = sqrt(color); // gamma correction ??? idk
+    }
+        color /= SAMPLES;
+        color = sqrt(color); // gamma correction ??? idk
         
     return color;
 
@@ -401,3 +401,4 @@ fn hit_aabb(ray: Ray, node: Node) -> f32 {
         return t_min;
     }
 }
+
