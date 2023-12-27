@@ -293,12 +293,36 @@ export class Renderer {
             // "public/2/ny.png",   //y-
             // "public/2/pz.png",    //z+
             // "public/2/nz.png", //z-
-            "public/3/px.jpg",   //x+
-            "public/3/nx.jpg",  //x-
-            "public/3/py.jpg",  //y+
-            "public/3/ny.jpg",   //y-
-            "public/3/pz.jpg",    //z+
-            "public/3/nz.jpg", //z-
+            // "../public/3/px.jpg",   //x+
+            // "../public/3/nx.jpg",  //x-
+            // "../public/3/py.jpg",  //y+
+            // "../public/3/ny.jpg",   //y-
+            // "../public/3/pz.jpg",    //z+
+            // "../public/3/nz.jpg", //z-
+            new URL(
+                `../public/3/px.jpg`,
+                import.meta.url
+              ).toString(),
+            new URL(
+                `../public/3/nx.jpg`,
+                import.meta.url
+              ).toString(),
+            new URL(
+                `../public/3/py.jpg`,
+                import.meta.url
+              ).toString(),
+            new URL(
+                `../public/3/ny.jpg`,
+                import.meta.url
+              ).toString(),
+            new URL(
+                `../public/3/pz.jpg`,
+                import.meta.url
+              ).toString(),
+            new URL(
+                `../public/3/nz.jpg`,
+                import.meta.url
+              ).toString(),
             // "public/gfx/sky_front.png",  //x+
             // "public/gfx/sky_back.png",   //x-
             // "public/gfx/sky_left.png",   //y+

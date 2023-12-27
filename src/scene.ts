@@ -24,7 +24,10 @@ export class Scene {
     async make_scene() {
         this.statue = new ObjMesh([0, -1, 0], [0,0,0]);
 
-        await this.statue.initialize([0.0, 0.0, 0.0], "public/models/tree.obj");
+        await this.statue.initialize([0.0, 0.0, 0.0], new URL(
+            `../public/models/tree.obj`,
+            import.meta.url
+          ).toString());
 
         //TODO: get the triangle data from the loaded model and put
         //it into the triangle list
