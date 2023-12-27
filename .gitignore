@@ -8,11 +8,11 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
-public/0
-public/1
-public/2
-public/gfx
-public/models
+public/0/
+public/1/
+public/2/
+public/gfx/
+public/models/
 dist-ssr
 *.local
 
